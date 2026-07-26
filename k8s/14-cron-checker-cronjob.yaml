@@ -1,0 +1,36 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: missed-checkin-checker
+  namespace: habit-tracker
+spec:
+  schedule: "0 20 * * *"   # 8 PM daily (UTC, adjust for your timezone)
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          containers:
+            - name: checker
+              image: yourdockerhub/habit-cron-checker:latest
+              env:
+                - name: BACKEND_URL
+                  value: "http://backend-service:5000"
+                - name: NOTIFY_URL
+                  value: "http://notification-service:5001"
+                - name: INTERNAL_SECRET
+                  valueFrom:
+                    secretKeyRef:
+                      name: backend-secret
+                      key: INTERNAL_SECRET
+              resources:
+                requests:
+                  cpu: "50m"
+                  memory: "64Mi"
+                limits:
+                  cpu: "200m"
+                  memory: "128Mi"
+          restartPolicy: OnFailure

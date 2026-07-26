@@ -1,0 +1,60 @@
+version: "3.8"
+
+# For LOCAL DEVELOPMENT ONLY. Kubernetes manifests in /k8s are what's used
+# for actual deployment - this file just makes it fast to spin everything
+# up on your laptop and confirm the app works end-to-end before touching K8s.
+
+services:
+  mongo:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+  backend:
+    build: ./backend
+    ports:
+      - "5000:5000"
+    environment:
+      PORT: 5000
+      MONGO_URL: mongodb://mongo:27017/habit_tracker
+      JWT_SECRET: local_dev_jwt_secret_change_me
+      INTERNAL_SECRET: local_dev_internal_secret_change_me
+      NOTIFY_URL: http://notification-service:5001
+    depends_on:
+      - mongo
+      - notification-service
+
+  notification-service:
+    build: ./notification-service
+    ports:
+      - "5001:5001"
+    environment:
+      PORT: 5001
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:80"
+    environment:
+      API_URL: http://localhost:5000
+    depends_on:
+      - backend
+
+  # Not run continuously - use `docker compose run cron-checker` to
+  # trigger it manually and test the missed-check-in flow locally.
+  cron-checker:
+    build: ./cron-checker
+    environment:
+      BACKEND_URL: http://backend:5000
+      NOTIFY_URL: http://notification-service:5001
+      INTERNAL_SECRET: local_dev_internal_secret_change_me
+    depends_on:
+      - backend
+      - notification-service
+    profiles:
+      - manual
+
+volumes:
+  mongo-data:

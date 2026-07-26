@@ -1,0 +1,17 @@
+{
+  "name": "habit-tracker-notification-service",
+  "version": "1.0.0",
+  "description": "Standalone notification microservice for the Habit Accountability Partner App",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
+}
