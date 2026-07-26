@@ -99,10 +99,3 @@ Then visit `http://localhost:3000`.
 
 For Kubernetes deployment steps, manifest ordering, and required secrets, see the setup guide referenced in this repo's contribution docs (kept out of version control since it contains environment-specific values).
 
-## Screenshots / demo
-
-_Add a screenshot of the dashboard and the heatmap view here once deployed._
-
-## License
-
-MIT
