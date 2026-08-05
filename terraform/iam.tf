@@ -47,6 +47,6 @@ resource "aws_iam_policy" "external_secrets" {
 }
 
 resource "aws_iam_role_policy_attachment" "external_secrets" {
-  role       = module.external_secrets_irsa.iam_role_name
+  role       = module.external_secrets_irsa.name
   policy_arn = aws_iam_policy.external_secrets.arn
 }

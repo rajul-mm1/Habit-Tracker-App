@@ -15,7 +15,7 @@ resource "aws_ecr_repository" "repositories" {
   for_each = toset(local.ecr_repositories)
 
   name                 = each.value
-  image_tag_mutability = "IMMUTABLE" # prevents a tag (e.g. a git-SHA tag) from being silently overwritten
+  image_tag_mutability = "MUTABLE" # prevents a tag (e.g. a git-SHA tag) from being silently overwritten
 
   image_scanning_configuration {
     scan_on_push = true

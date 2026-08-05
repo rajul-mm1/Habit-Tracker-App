@@ -30,3 +30,13 @@ Thumbs.db
 
 # Private setup notes with personal steps/credentials reminders
 SETUP_NOTES.md
+
+#  terraform files
+.terraform.lock.hcl
+terraform.tfstate
+terraform.tfstate.backup
+.terraform/
+
+# Downloaded binaries and archives
+*.tgz
+kubectl
