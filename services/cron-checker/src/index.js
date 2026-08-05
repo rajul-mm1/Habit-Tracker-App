@@ -50,3 +50,4 @@ run()
     console.error('Cron checker failed:', err.message);
     process.exit(1);
   });
+ 

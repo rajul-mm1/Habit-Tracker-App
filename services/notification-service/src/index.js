@@ -60,3 +60,4 @@ async function sendNotification({ toUserId, toEmail, partnershipId, type, messag
 app.listen(PORT, () => {
   console.log(`Notification service listening on port ${PORT}`);
 });
+ 
