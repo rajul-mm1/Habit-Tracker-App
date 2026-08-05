@@ -1,27 +1,19 @@
 image:
   repository: "161805283944.dkr.ecr.us-west-2.amazonaws.com/frontend"
-  tag: "latest"
+  tag: "adc1ea32e9301dc91beb52ede6daefd7d01ef13a"
   pullPolicy: IfNotPresent
-
 imagePullSecrets: []
-
 replicaCount: 2
-
 nameOverride: ""
 fullnameOverride: ""
-
 serviceAccount:
   create: true
   automount: false
   annotations: {}
   name: ""
-
 podAnnotations: {}
-
 podLabels: {}
-
 podSecurityContext: {}
-
 securityContext:
   runAsNonRoot: true
   runAsUser: 101
@@ -32,11 +24,9 @@ securityContext:
   capabilities:
     drop:
       - ALL
-
 service:
   type: ClusterIP
   port: 80
-
 ingress:
   enabled: true
   className: nginx
@@ -45,10 +35,8 @@ ingress:
   host: habittracker.local
   path: /
   pathType: Prefix
-
 config:
   REACT_APP_API_URL: "http://backend-service:5000"
-
 resources:
   requests:
     cpu: 100m
@@ -56,9 +44,6 @@ resources:
   limits:
     cpu: 300m
     memory: 256Mi
-
 nodeSelector: {}
-
 tolerations: []
-
 affinity: {}

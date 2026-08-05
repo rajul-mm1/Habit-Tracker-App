@@ -1,27 +1,19 @@
 replicaCount: 1
-
 image:
   repository: "161805283944.dkr.ecr.us-west-2.amazonaws.com/backend"
   pullPolicy: IfNotPresent
-  tag: "latest"
-
+  tag: "adc1ea32e9301dc91beb52ede6daefd7d01ef13a"
 imagePullSecrets: []
-
 nameOverride: ""
 fullnameOverride: ""
-
 serviceAccount:
   create: true
   automount: false
   annotations: {}
   name: ""
-
 podAnnotations: {}
-
 podLabels: {}
-
 podSecurityContext: {}
-
 securityContext:
   runAsNonRoot: true
   runAsUser: 1001
@@ -32,11 +24,9 @@ securityContext:
   capabilities:
     drop:
       - ALL
-
 service:
   type: ClusterIP
   port: 5000
-
 ingress:
   enabled: true
   className: nginx
@@ -45,7 +35,6 @@ ingress:
   host: habittracker.local
   path: /
   pathType: Prefix
-
 resources:
   requests:
     cpu: 100m
@@ -53,31 +42,25 @@ resources:
   limits:
     cpu: 500m
     memory: 256Mi
-
 autoscaling:
   enabled: true
   minReplicas: 2
   maxReplicas: 5
   targetCPUUtilizationPercentage: 80
-
 pdb:
   enabled: true
   minAvailable: 1
-
 serviceMonitor:
   enabled: true
   interval: 30s
   path: /metrics
-
 config:
   PORT: "5000"
   MONGO_URL: "mongodb://mongodb:27017/habit_tracker"
   NOTIFY_URL: "http://notification-service:5001"
-
 secret:
   JWT_SECRET: "kjdsfkdjfkjdsfjdkfjkdfjksdfjksdfjksdfjk"
   INTERNAL_SECRET: "mlkjisfhiojdfanfdkjfhauwiojdmfadfn"
-
 livenessProbe:
   httpGet:
     path: /health
@@ -86,7 +69,6 @@ livenessProbe:
   periodSeconds: 10
   timeoutSeconds: 5
   failureThreshold: 3
-
 readinessProbe:
   httpGet:
     path: /health
@@ -95,18 +77,14 @@ readinessProbe:
   periodSeconds: 5
   timeoutSeconds: 3
   failureThreshold: 3
-
 startupProbe:
   httpGet:
     path: /health
     port: http
   failureThreshold: 30
   periodSeconds: 10
-
 nodeSelector: {}
-
 tolerations: []
-
 affinity:
   podAntiAffinity:
     preferredDuringSchedulingIgnoredDuringExecution:
