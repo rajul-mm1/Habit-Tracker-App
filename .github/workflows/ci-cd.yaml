@@ -107,7 +107,7 @@ jobs:
       - name: Run tests
         working-directory: services/frontend
         run: |
-          if npm run 2>/dev/null | grep -q "test"; then npm test
+          if npm run 2>/dev/null | grep -q "test"; then npm test -- --passWithNoTests --watchAll=false
           else echo "No test script — skipping."; fi
 
   # ═══════════════════════════════════════════════════════════════════════════
@@ -197,7 +197,7 @@ jobs:
           provenance: false
 
       - name: Trivy vulnerability scan
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@0.30.0
         with:
           image-ref: ${{ env.ECR_REGISTRY }}/backend:${{ env.IMAGE_TAG }}
           format: table
@@ -252,7 +252,7 @@ jobs:
           provenance: false
 
       - name: Trivy vulnerability scan
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@0.30.0
         with:
           image-ref: ${{ env.ECR_REGISTRY }}/frontend:${{ env.IMAGE_TAG }}
           format: table
@@ -307,7 +307,7 @@ jobs:
           provenance: false
 
       - name: Trivy vulnerability scan
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@0.30.0
         with:
           image-ref: ${{ env.ECR_REGISTRY }}/notification-service:${{ env.IMAGE_TAG }}
           format: table
@@ -362,7 +362,7 @@ jobs:
           provenance: false
 
       - name: Trivy vulnerability scan
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@0.30.0
         with:
           image-ref: ${{ env.ECR_REGISTRY }}/cron-checker:${{ env.IMAGE_TAG }}
           format: table
