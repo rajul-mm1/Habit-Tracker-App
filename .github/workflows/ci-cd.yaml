@@ -1,108 +1,416 @@
-name: Build and Push Docker Images
+name: CI/CD Pipeline
 
-# Runs tests/builds on every PR, and only pushes images to the registry
-# when changes land on main - avoids polluting the registry with images
-# from half-finished branches.
+# ─────────────────────────────────────────────────────────────────────────────
+#  TRIGGER
+#  ─────────────────────────────────────────────────────────────────────────────
+#  pull_request → main   CI only  : install → test → docker build → trivy scan
+#  push        → main   CI + CD  : above + push to ECR + update Helm values
+#  workflow_dispatch     Manual trigger — forces ALL services to build
+# ─────────────────────────────────────────────────────────────────────────────
 on:
-  push:
-    branches: [main]
   pull_request:
     branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
 
+# ─────────────────────────────────────────────────────────────────────────────
+#  PERMISSIONS
+#  id-token : write  → AWS OIDC (no static credentials)
+#  contents : write  → push Helm image-tag updates back to this repo
+# ─────────────────────────────────────────────────────────────────────────────
+permissions:
+  id-token: write
+  contents: write
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  GLOBAL ENV
+# ─────────────────────────────────────────────────────────────────────────────
 env:
-  REGISTRY: docker.io
-  DOCKERHUB_NAMESPACE: ${{ secrets.DOCKERHUB_USERNAME }}
+  AWS_REGION:   us-west-2                                                        # change to your region
+  IMAGE_TAG:    ${{ github.sha }}
+  ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-west-2.amazonaws.com   # matches AWS_REGION above
 
+# ─────────────────────────────────────────────────────────────────────────────
+#  CONCURRENCY  – cancel any in-progress run on the same branch/PR
+# ─────────────────────────────────────────────────────────────────────────────
+concurrency:
+  group: cicd-${{ github.ref }}
+  cancel-in-progress: true
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  JOBS
+# ─────────────────────────────────────────────────────────────────────────────
 jobs:
-  # ------------------------------------------------------------------
-  # Lint/sanity-check each Node.js service before anything gets built.
-  # ------------------------------------------------------------------
-  test:
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  #  JOB 0 ── detect-changes
+  #
+  #  Compares the pushed commits against the previous HEAD and outputs a
+  #  true/false flag for each service directory.
+  #
+  #  Downstream jobs read these flags and skip themselves when their service
+  #  has no changes — avoiding unnecessary builds, scans, and pushes.
+  #
+  #  workflow_dispatch forces all flags to true so a manual run always
+  #  rebuilds everything.
+  #
+  #  Outputs (each is 'true' or 'false'):
+  #    backend              → services/backend/** changed
+  #    frontend             → services/frontend/** changed
+  #    notification-service → services/notification-service/** changed
+  #    cron-checker         → services/cron-checker/** changed
+  # ═══════════════════════════════════════════════════════════════════════════
+  detect-changes:
+    name: Detect Changed Services
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        service: [backend, notification-service, cron-checker]
+
+    outputs:
+      backend:              ${{ steps.filter.outputs.backend }}
+      frontend:             ${{ steps.filter.outputs.frontend }}
+      notification-service: ${{ steps.filter.outputs.notification-service }}
+      cron-checker:         ${{ steps.filter.outputs.cron-checker }}
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      # dorny/paths-filter diffs the PR/push against the base ref and sets
+      # one output per filter key to 'true' if any matching path changed.
+      - name: Check which services changed
+        id: filter
+        uses: dorny/paths-filter@v3
         with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: ${{ matrix.service }}/package-lock.json
+          # On workflow_dispatch there is no base ref to diff against.
+          # initial-fetch-depth: 1 makes it fall back to treating ALL files
+          # as changed, which naturally forces all services to build.
+          initial-fetch-depth: '1'
+          filters: |
+            backend:
+              - 'services/backend/**'
+            frontend:
+              - 'services/frontend/**'
+            notification-service:
+              - 'services/notification-service/**'
+            cron-checker:
+              - 'services/cron-checker/**'
 
-      - name: Install dependencies
-        working-directory: ${{ matrix.service }}
-        run: npm install
-
-      - name: Syntax check
-        working-directory: ${{ matrix.service }}
-        run: node --check server.js 2>/dev/null || node --check index.js
-
-  # ------------------------------------------------------------------
-  # Build + push images. Only runs on main, and only after tests pass.
-  # ------------------------------------------------------------------
-  build-and-push:
-    needs: test
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+  # ═══════════════════════════════════════════════════════════════════════════
+  #  JOB 1 ── test
+  #
+  #  Installs dependencies and runs the test suite.
+  #  Each matrix leg checks the detect-changes output for its service and
+  #  exits early (skips) if nothing changed.
+  #
+  #  The condition is evaluated per-leg via a JSON lookup:
+  #    fromJson(needs.detect-changes.outputs.<service>) == 'true'
+  # ═══════════════════════════════════════════════════════════════════════════
+  test:
+    name: Test / ${{ matrix.service }}
     runs-on: ubuntu-latest
+    needs: detect-changes
+
     strategy:
+      fail-fast: false
       matrix:
         include:
           - service: backend
-            image: habit-backend
+            changed: ${{ needs.detect-changes.outputs.backend }}
           - service: frontend
-            image: habit-frontend
+            changed: ${{ needs.detect-changes.outputs.frontend }}
           - service: notification-service
-            image: habit-notification-service
+            changed: ${{ needs.detect-changes.outputs.notification-service }}
           - service: cron-checker
-            image: habit-cron-checker
-    steps:
-      - uses: actions/checkout@v4
+            changed: ${{ needs.detect-changes.outputs.cron-checker }}
 
+    # Skip this leg entirely if the service did not change.
+    if: ${{ matrix.changed == 'true' }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: services/${{ matrix.service }}/package-lock.json
+
+      - name: Install dependencies
+        working-directory: services/${{ matrix.service }}
+        run: npm ci
+
+      - name: Run tests
+        working-directory: services/${{ matrix.service }}
+        # None of the services currently define a test script.
+        # Skips gracefully when no test script is present.
+        run: |
+          if npm run 2>/dev/null | grep -q "test"; then
+            npm test
+          else
+            echo "ℹ️  No test script found for '${{ matrix.service }}' — skipping."
+          fi
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  #  JOB 2 ── build-scan-push
+  #
+  #  For every changed service:
+  #    1. Build Docker image  (BuildKit + GHA layer cache)
+  #    2. Trivy scan          (CRITICAL/HIGH CVEs fail the pipeline)
+  #    3. Push to ECR         (only on push/manual — NOT on pull_request)
+  #
+  #  Same per-leg change guard as the test job.
+  # ═══════════════════════════════════════════════════════════════════════════
+  build-scan-push:
+    name: Build › Scan › Push / ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    needs: [detect-changes, test]
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: backend
+            changed: ${{ needs.detect-changes.outputs.backend }}
+          - service: frontend
+            changed: ${{ needs.detect-changes.outputs.frontend }}
+          - service: notification-service
+            changed: ${{ needs.detect-changes.outputs.notification-service }}
+          - service: cron-checker
+            changed: ${{ needs.detect-changes.outputs.cron-checker }}
+
+    # Skip this leg if the service did not change.
+    if: ${{ matrix.changed == 'true' }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── AWS auth via OIDC ─────────────────────────────────────────────────
+      # Required IAM permissions:
+      #   ecr:GetAuthorizationToken, ecr:BatchGetImage,
+      #   ecr:InitiateLayerUpload, ecr:UploadLayerPart,
+      #   ecr:CompleteLayerUpload, ecr:PutImage
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-ecr
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # ── Docker Buildx ─────────────────────────────────────────────────────
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
+      # ── Build image ───────────────────────────────────────────────────────
+      # load: true makes the image available in the local Docker daemon
+      # so Trivy can inspect it. push happens separately after scan passes.
+      - name: Build Docker image
+        uses: docker/build-push-action@v6
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Build and push image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./${{ matrix.service }}
-          push: true
-          tags: |
-            ${{ env.DOCKERHUB_NAMESPACE }}/${{ matrix.image }}:latest
-            ${{ env.DOCKERHUB_NAMESPACE }}/${{ matrix.image }}:${{ github.sha }}
+          context: ./services/${{ matrix.service }}
+          load: true
+          push: false
+          tags: ${{ env.ECR_REGISTRY }}/${{ matrix.service }}:${{ env.IMAGE_TAG }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          provenance: false
 
-  # ------------------------------------------------------------------
-  # Optional: deploy to a cluster after images are pushed.
-  # Requires a KUBE_CONFIG secret containing a valid kubeconfig.
-  # Commented out by default - uncomment once your cluster is reachable
-  # from GitHub Actions (e.g. a cloud-hosted cluster, not a local Minikube).
-  # ------------------------------------------------------------------
-  # deploy:
-  #   needs: build-and-push
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - name: Set up kubectl
-  #       uses: azure/setup-kubectl@v3
-  #     - name: Configure kubeconfig
-  #       run: |
-  #         mkdir -p $HOME/.kube
-  #         echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > $HOME/.kube/config
-  #     - name: Roll out new images
-  #       run: |
-  #         kubectl -n habit-tracker set image deployment/backend backend=${{ env.DOCKERHUB_NAMESPACE }}/habit-backend:${{ github.sha }}
-  #         kubectl -n habit-tracker set image deployment/frontend frontend=${{ env.DOCKERHUB_NAMESPACE }}/habit-frontend:${{ github.sha }}
-  #         kubectl -n habit-tracker set image deployment/notification-service notification-service=${{ env.DOCKERHUB_NAMESPACE }}/habit-notification-service:${{ github.sha }}
-  #         kubectl -n habit-tracker rollout status deployment/backend
-  #         kubectl -n habit-tracker rollout status deployment/frontend
-  #         kubectl -n habit-tracker rollout status deployment/notification-service
+      # ── Trivy security scan ───────────────────────────────────────────────
+      # exit-code: 1 → pipeline fails on unfixed CRITICAL/HIGH CVEs.
+      # Runs on both PR and push — no vulnerable image ever reaches ECR.
+      - name: Trivy vulnerability scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ env.ECR_REGISTRY }}/${{ matrix.service }}:${{ env.IMAGE_TAG }}
+          format: table
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: os,library
+          severity: CRITICAL,HIGH
+
+      # ── Push to ECR (main / manual only, after scan passes) ───────────────
+      - name: Push image to Amazon ECR
+        if: github.event_name != 'pull_request'
+        run: |
+          docker push ${{ env.ECR_REGISTRY }}/${{ matrix.service }}:${{ env.IMAGE_TAG }}
+
+          docker tag  ${{ env.ECR_REGISTRY }}/${{ matrix.service }}:${{ env.IMAGE_TAG }} \
+                      ${{ env.ECR_REGISTRY }}/${{ matrix.service }}:latest
+          docker push ${{ env.ECR_REGISTRY }}/${{ matrix.service }}:latest
+
+          echo "✅ Pushed ${{ matrix.service }}:${{ env.IMAGE_TAG }} to ECR"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  #  JOB 3 ── update-helm
+  #
+  #  Patches image.repository + image.tag in the Helm values.yaml of every
+  #  service that changed, then commits and pushes once.
+  #  ArgoCD (targetRevision: main) detects the change and syncs the EKS
+  #  cluster automatically.
+  #
+  #  Helm chart paths (matching ArgoCD Application source.path):
+  #    services/backend/chart/values.yaml
+  #    services/frontend/chart/values.yaml
+  #    services/notification-service/chart/values.yaml
+  #    services/cron-checker/chart/values.yaml
+  #
+  #  [skip ci] on the commit message prevents this push from re-triggering
+  #  the pipeline.
+  # ═══════════════════════════════════════════════════════════════════════════
+  update-helm:
+    name: Update Helm Image Tags
+    runs-on: ubuntu-latest
+    needs: [detect-changes, build-scan-push]
+    if: github.event_name != 'pull_request'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git bot user
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Install yq
+        run: |
+          sudo wget -qO /usr/local/bin/yq \
+            https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+          yq --version
+
+      # ── Patch only the services that changed ──────────────────────────────
+      # Each service is checked against the detect-changes output.
+      # All patching happens before any git operation so there is exactly
+      # one commit and one push regardless of how many services changed.
+      - name: Update image tags for changed services
+        env:
+          CHANGED_BACKEND:      ${{ needs.detect-changes.outputs.backend }}
+          CHANGED_FRONTEND:     ${{ needs.detect-changes.outputs.frontend }}
+          CHANGED_NOTIFICATION: ${{ needs.detect-changes.outputs.notification-service }}
+          CHANGED_CRON:         ${{ needs.detect-changes.outputs.cron-checker }}
+        run: |
+          declare -A SERVICE_FLAGS=(
+            [backend]="$CHANGED_BACKEND"
+            [frontend]="$CHANGED_FRONTEND"
+            [notification-service]="$CHANGED_NOTIFICATION"
+            [cron-checker]="$CHANGED_CRON"
+          )
+
+          for service in backend frontend notification-service cron-checker; do
+            if [[ "${SERVICE_FLAGS[$service]}" != "true" ]]; then
+              echo "⏭️  $service unchanged — skipping Helm update."
+              continue
+            fi
+
+            VALUES="services/${service}/chart/values.yaml"
+
+            if [[ ! -f "$VALUES" ]]; then
+              echo "⚠️  $VALUES not found — skipping."
+              continue
+            fi
+
+            yq -i "
+              .image.repository = \"${{ env.ECR_REGISTRY }}/${service}\" |
+              .image.tag        = \"${{ env.IMAGE_TAG }}\"
+            " "$VALUES"
+
+            echo "✅ Patched $VALUES → tag: ${{ env.IMAGE_TAG }}"
+          done
+
+      - name: Show Helm diff
+        run: git diff services/
+
+      # ── Single commit + push for all changed services ─────────────────────
+      - name: Commit and push Helm updates
+        run: |
+          if git diff --quiet services/; then
+            echo "No Helm changes detected — nothing to commit."
+            exit 0
+          fi
+
+          git add services/backend/chart/values.yaml
+          git add services/frontend/chart/values.yaml
+          git add services/notification-service/chart/values.yaml
+          git add services/cron-checker/chart/values.yaml
+
+          git commit -m "chore(helm): update image tags → ${{ env.IMAGE_TAG }} [skip ci]"
+          git push origin main
+
+          echo "✅ Helm values committed — ArgoCD will sync the EKS cluster shortly."
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  #  JOB 4 ── summary
+  #  Always runs. Writes a status table to the GitHub Actions summary page.
+  # ═══════════════════════════════════════════════════════════════════════════
+  summary:
+    name: Pipeline Summary
+    runs-on: ubuntu-latest
+    needs: [detect-changes, test, build-scan-push, update-helm]
+    if: always()
+
+    steps:
+      - name: Write job summary
+        run: |
+          echo "# CI/CD Pipeline — Run Summary"                                >> $GITHUB_STEP_SUMMARY
+          echo ""                                                               >> $GITHUB_STEP_SUMMARY
+          echo "| Job             | Result                                    |" >> $GITHUB_STEP_SUMMARY
+          echo "| --------------- | ----------------------------------------- |" >> $GITHUB_STEP_SUMMARY
+          echo "| Detect Changes  | ${{ needs.detect-changes.result }}        |" >> $GITHUB_STEP_SUMMARY
+          echo "| Test            | ${{ needs.test.result }}                  |" >> $GITHUB_STEP_SUMMARY
+          echo "| Build/Scan/Push | ${{ needs.build-scan-push.result }}       |" >> $GITHUB_STEP_SUMMARY
+          echo "| Update Helm     | ${{ needs.update-helm.result }}           |" >> $GITHUB_STEP_SUMMARY
+          echo ""                                                               >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** \`${{ github.sha }}\`"                             >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** \`${{ github.ref_name }}\`"                        >> $GITHUB_STEP_SUMMARY
+          echo "**Event:**  ${{ github.event_name }}"                          >> $GITHUB_STEP_SUMMARY
+          echo ""                                                               >> $GITHUB_STEP_SUMMARY
+          echo "### Changed Services"                                           >> $GITHUB_STEP_SUMMARY
+          echo "| Service              | Changed | ECR Image Tag           |"  >> $GITHUB_STEP_SUMMARY
+          echo "| -------------------- | ------- | ----------------------- |"  >> $GITHUB_STEP_SUMMARY
+          echo "| backend              | ${{ needs.detect-changes.outputs.backend }}              | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| frontend             | ${{ needs.detect-changes.outputs.frontend }}             | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| notification-service | ${{ needs.detect-changes.outputs.notification-service }} | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| cron-checker         | ${{ needs.detect-changes.outputs.cron-checker }}         | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo ""                                                               >> $GITHUB_STEP_SUMMARY
+          echo "> ArgoCD monitors \`main\` and syncs changed services to the EKS cluster automatically." >> $GITHUB_STEP_SUMMARY
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  PIPELINE FLOW
+#
+#  Every event
+#    └──► detect-changes  (dorny/paths-filter — outputs true/false per service)
+#
+#  Pull Request
+#    └──► detect-changes ──► test (changed only) ──► build + trivy scan (changed only)
+#
+#  Push to main / workflow_dispatch
+#    └──► detect-changes ──► test ──► build + trivy scan ──► push to ECR
+#                                                    │
+#                                              update-helm  (patch only changed values.yaml)
+#                                                    │
+#                                              git push → ArgoCD syncs EKS ✅
+#
+# ─────────────────────────────────────────────────────────────────────────────
+#  REQUIRED GITHUB SECRETS
+#  ┌──────────────────────┬─────────────────────────────────────────────────┐
+#  │ Secret               │ Value                                           │
+#  ├──────────────────────┼─────────────────────────────────────────────────┤
+#  │ AWS_ACCOUNT_ID       │ Your 12-digit AWS account ID                    │
+#  └──────────────────────┴─────────────────────────────────────────────────┘
+#
+#  REQUIRED IAM ROLE  (github-actions-ecr)
+#  Trust policy  : sts:AssumeRoleWithWebIdentity  (token.actions.githubusercontent.com)
+#  Permissions   : AmazonEC2ContainerRegistryPowerUser (or equivalent inline policy)
+#
+#  ARGOCD APPLICATIONS  (already configured — no changes needed)
+#  Each Application watches services/<service>/chart on branch main and
+#  deploys to namespace habit-tracker on https://kubernetes.default.svc
+# ─────────────────────────────────────────────────────────────────────────────

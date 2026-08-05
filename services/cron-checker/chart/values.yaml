@@ -1,0 +1,61 @@
+image:
+  repository: "161805283944.dkr.ecr.us-west-2.amazonaws.com/cron-checker"
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  automount: false
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+podLabels: {}
+
+podSecurityContext: {}
+
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1001
+  runAsGroup: 1001
+  fsGroup: 1001
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+cronJob:
+  schedule: "*/5 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 2
+  restartPolicy: Never
+  backoffLimit: 3
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 300m
+    memory: 256Mi
+
+config:
+  BACKEND_URL: "http://backend-service:5000"
+  NOTIFY_URL: "http://notification-service:5001"
+
+secret:
+  INTERNAL_SECRET: "mlkjisfhiojdfanfdkjfhauwiojdmfadfn"
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

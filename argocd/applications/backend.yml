@@ -1,0 +1,39 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+
+metadata:
+  name: backend
+  namespace: argocd
+
+spec:
+  project: habit-tracker
+
+  source:
+    repoURL: https://github.com/rajul-mm1/Habit-Tracker-App.git
+    targetRevision: main
+    path: services/backend/chart
+
+    helm:
+      releaseName: backend
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: habit-tracker
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+
+    retry:
+      limit: 5
+
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m

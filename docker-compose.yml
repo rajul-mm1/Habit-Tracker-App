@@ -1,19 +1,40 @@
-version: "3.8"
-
-# For LOCAL DEVELOPMENT ONLY. Kubernetes manifests in /k8s are what's used
-# for actual deployment - this file just makes it fast to spin everything
-# up on your laptop and confirm the app works end-to-end before touching K8s.
+# For LOCAL DEVELOPMENT ONLY.
+# Run: docker compose up -d
+# Cron checker (manual): docker compose run cron-checker
 
 services:
+
+  # ── MongoDB ───────────────────────────────────────────────────────────────
   mongo:
     image: mongo:7
     ports:
       - "27017:27017"
     volumes:
       - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
+  # ── Notification Service ──────────────────────────────────────────────────
+  notification-service:
+    build: ./services/notification-service
+    ports:
+      - "5001:5001"
+    environment:
+      PORT: 5001
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:5001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ── Backend ───────────────────────────────────────────────────────────────
   backend:
-    build: ./backend
+    build: ./services/backend
     ports:
       - "5000:5000"
     environment:
@@ -23,36 +44,44 @@ services:
       INTERNAL_SECRET: local_dev_internal_secret_change_me
       NOTIFY_URL: http://notification-service:5001
     depends_on:
-      - mongo
-      - notification-service
+      mongo:
+        condition: service_healthy
+      notification-service:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:5000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
 
-  notification-service:
-    build: ./notification-service
-    ports:
-      - "5001:5001"
-    environment:
-      PORT: 5001
-
+  # ── Frontend ──────────────────────────────────────────────────────────────
+  # API_URL is injected at runtime by docker-entrypoint.sh into env.js.
+  # From the browser's perspective the backend is at localhost:5000.
   frontend:
-    build: ./frontend
+    build: ./services/frontend
     ports:
       - "3000:80"
     environment:
       API_URL: http://localhost:5000
     depends_on:
-      - backend
+      backend:
+        condition: service_started
 
-  # Not run continuously - use `docker compose run cron-checker` to
-  # trigger it manually and test the missed-check-in flow locally.
+  # ── Cron Checker (manual only) ────────────────────────────────────────────
+  # Not started with `up`. Run manually with:
+  #   docker compose run cron-checker
   cron-checker:
-    build: ./cron-checker
+    build: ./services/cron-checker
     environment:
       BACKEND_URL: http://backend:5000
       NOTIFY_URL: http://notification-service:5001
       INTERNAL_SECRET: local_dev_internal_secret_change_me
     depends_on:
-      - backend
-      - notification-service
+      backend:
+        condition: service_started
+      notification-service:
+        condition: service_started
     profiles:
       - manual
 

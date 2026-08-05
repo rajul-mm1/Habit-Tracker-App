@@ -1,0 +1,61 @@
+{{- if .Values.serviceMonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+
+metadata:
+  name: {{ include "chart.fullname" . }}-alerts
+  labels:
+    {{- include "chart.labels" . | nindent 4 }}
+    release: prometheus
+
+spec:
+  groups:
+    - name: backend.rules
+      rules:
+
+        - alert: BackendPodDown
+          expr: up{job="{{ include "chart.fullname" . }}"} == 0
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Backend pod is down"
+            description: "No backend pod has been reachable for more than 2 minutes."
+
+        - alert: BackendHighCPUUsage
+          expr: |
+            sum(rate(container_cpu_usage_seconds_total{pod=~"{{ include "chart.fullname" . }}-.*"}[5m]))
+            /
+            sum(kube_pod_container_resource_limits{resource="cpu",pod=~"{{ include "chart.fullname" . }}-.*"})
+            > 0.80
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High CPU usage"
+            description: "Backend CPU usage has been above 80% for more than 5 minutes."
+
+        - alert: BackendHighMemoryUsage
+          expr: |
+            (
+              sum(container_memory_working_set_bytes{pod=~"{{ include "chart.fullname" . }}-.*"})
+              /
+              sum(kube_pod_container_resource_limits{resource="memory",pod=~"{{ include "chart.fullname" . }}-.*"})
+            ) > 0.80
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High memory usage"
+            description: "Backend memory usage has been above 80% for more than 5 minutes."
+
+        - alert: BackendPodRestarting
+          expr: increase(kube_pod_container_status_restarts_total{pod=~"{{ include "chart.fullname" . }}-.*"}[10m]) > 3
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Backend pod restarting frequently"
+            description: "Backend pod restarted more than 3 times in the last 10 minutes."
+
+{{- end }}
