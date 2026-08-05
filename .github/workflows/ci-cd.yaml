@@ -162,7 +162,7 @@ jobs:
   #  JOB 2 ── build-scan-push-backend
   # ═══════════════════════════════════════════════════════════════════════════
   build-scan-push-backend:
-    name: Build › Scan › Push / backend
+    name: Build > Scan > Push / backend
     runs-on: ubuntu-latest
     needs: [detect-changes, test-backend]
     if: |
@@ -186,7 +186,7 @@ jobs:
           ")
           echo "OIDC Token Claims:"
           echo "$PAYLOAD" | grep -E '"sub"|"aud"|"iss"'
-          
+
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
