@@ -2,7 +2,7 @@ replicaCount: 1
 image:
   repository: "161805283944.dkr.ecr.us-west-2.amazonaws.com/backend"
   pullPolicy: IfNotPresent
-  tag: "ae96ff341cc4e8148eb595ceccd77e866751ef02"
+  tag: "dee66e4b94089a9cf48ae6935de7ed9a109f3d80"
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
@@ -31,8 +31,8 @@ ingress:
   enabled: true
   className: nginx
   annotations:
-        nginx.ingress.kubernetes.io/use-regex: "true"
-        nginx.ingress.kubernetes.io/rewrite-target: "/$2"  
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: "/$2"
   host: habittracker.local
   path: /api(/|$)(.*)
   pathType: ImplementationSpecific
