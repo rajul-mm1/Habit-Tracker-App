@@ -32,7 +32,8 @@ ingress:
   className: nginx
   annotations:
         nginx.ingress.kubernetes.io/use-regex: "true"
-        nginx.ingress.kubernetes.io/rewrite-target: /$2  host: habittracker.local
+        nginx.ingress.kubernetes.io/rewrite-target: "/$2"  
+  host: habittracker.local
   path: /api(/|$)(.*)
   pathType: ImplementationSpecific
 resources:
