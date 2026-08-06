@@ -2,14 +2,17 @@ FROM node:24-alpine
 
 WORKDIR /app
 
-# Upgrade npm itself to patch CVEs in its bundled dependencies
-RUN npm install -g npm@latest
-
 COPY package*.json ./
-RUN npm install --production
+RUN npm install --production \
+    && rm -rf /usr/local/lib/node_modules/npm \
+              /usr/local/bin/npm \
+              /usr/local/bin/npx \
+              /opt/yarn-v* \
+              /usr/local/lib/node_modules/corepack \
+              /usr/local/bin/corepack
 
 COPY . .
 
-EXPOSE 5001
+EXPOSE 5000
 
-CMD ["node", "src/index.js"]
+CMD ["node", "src/server.js"]
