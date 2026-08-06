@@ -1,27 +1,19 @@
 image:
   repository: "161805283944.dkr.ecr.us-west-2.amazonaws.com/notification-service"
-  tag: "latest"
+  tag: "ae96ff341cc4e8148eb595ceccd77e866751ef02"
   pullPolicy: IfNotPresent
-
 imagePullSecrets: []
-
 replicaCount: 2
-
 nameOverride: ""
 fullnameOverride: ""
-
 serviceAccount:
   create: true
   automount: false
   annotations: {}
   name: ""
-
 podAnnotations: {}
-
 podLabels: {}
-
 podSecurityContext: {}
-
 securityContext:
   runAsNonRoot: true
   runAsUser: 1001
@@ -32,11 +24,9 @@ securityContext:
   capabilities:
     drop:
       - ALL
-
 service:
   type: ClusterIP
   port: 5001
-
 ingress:
   enabled: true
   className: nginx
@@ -45,11 +35,8 @@ ingress:
   host: habittracker.local
   path: /notify
   pathType: Prefix
-
 config: {}
-
 secret: {}
-
 resources:
   requests:
     cpu: 100m
@@ -57,9 +44,6 @@ resources:
   limits:
     cpu: 300m
     memory: 256Mi
-
 nodeSelector: {}
-
 tolerations: []
-
 affinity: {}

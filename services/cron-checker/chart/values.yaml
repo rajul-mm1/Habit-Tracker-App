@@ -1,25 +1,18 @@
 image:
   repository: "161805283944.dkr.ecr.us-west-2.amazonaws.com/cron-checker"
-  tag: "latest"
+  tag: "ae96ff341cc4e8148eb595ceccd77e866751ef02"
   pullPolicy: IfNotPresent
-
 imagePullSecrets: []
-
 nameOverride: ""
 fullnameOverride: ""
-
 serviceAccount:
   create: true
   automount: false
   annotations: {}
   name: ""
-
 podAnnotations: {}
-
 podLabels: {}
-
 podSecurityContext: {}
-
 securityContext:
   runAsNonRoot: true
   runAsUser: 1001
@@ -30,7 +23,6 @@ securityContext:
   capabilities:
     drop:
       - ALL
-
 cronJob:
   schedule: "*/5 * * * *"
   concurrencyPolicy: Forbid
@@ -38,7 +30,6 @@ cronJob:
   failedJobsHistoryLimit: 2
   restartPolicy: Never
   backoffLimit: 3
-
 resources:
   requests:
     cpu: 100m
@@ -46,16 +37,11 @@ resources:
   limits:
     cpu: 300m
     memory: 256Mi
-
 config:
   BACKEND_URL: "http://backend-service:5000"
   NOTIFY_URL: "http://notification-service:5001"
-
 secret:
   INTERNAL_SECRET: "mlkjisfhiojdfanfdkjfhauwiojdmfadfn"
-
 nodeSelector: {}
-
 tolerations: []
-
 affinity: {}

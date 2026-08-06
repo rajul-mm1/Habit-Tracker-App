@@ -2,7 +2,7 @@ replicaCount: 1
 image:
   repository: "161805283944.dkr.ecr.us-west-2.amazonaws.com/backend"
   pullPolicy: IfNotPresent
-  tag: "adc1ea32e9301dc91beb52ede6daefd7d01ef13a"
+  tag: "ae96ff341cc4e8148eb595ceccd77e866751ef02"
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
