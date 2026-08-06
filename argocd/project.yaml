@@ -24,25 +24,41 @@ spec:
       kind: ClusterIssuer
   
   namespaceResourceWhitelist:
-    - group: ''
-      kind: ConfigMap
-    - group: ''
-      kind: Secret
-    - group: ''
-      kind: Service
-    - group: ''
-      kind: ServiceAccount
-    - group: 'apps'
-      kind: Deployment
-    - group: 'apps'
-      kind: StatefulSet
-    - group: 'batch'
-      kind: CronJob
-    - group: 'batch'
-      kind: Job
-    - group: 'networking.k8s.io'
-      kind: Ingress
-    - group: 'autoscaling'
-      kind: HorizontalPodAutoscaler
-    - group: 'policy'
-      kind: PodDisruptionBudget 
+  - group: ""
+    kind: ConfigMap
+  - group: ""
+    kind: Secret
+  - group: ""
+    kind: Service
+  - group: ""
+    kind: ServiceAccount
+  - group: apps
+    kind: Deployment
+  - group: apps
+    kind: StatefulSet
+  - group: batch
+    kind: CronJob
+  - group: batch
+    kind: Job
+  - group: networking.k8s.io
+    kind: Ingress
+  - group: autoscaling
+    kind: HorizontalPodAutoscaler
+  - group: policy
+    kind: PodDisruptionBudget
+  - group: monitoring.coreos.com
+    kind: ServiceMonitor
+  - group: monitoring.coreos.com
+    kind: PrometheusRule
+
+  - group: monitoring.coreos.com
+    kind: ServiceMonitor
+
+  - group: monitoring.coreos.com
+    kind: PrometheusRule
+
+  - group: monitoring.coreos.com
+    kind: PodMonitor
+
+  - group: monitoring.coreos.com
+    kind: Probe
