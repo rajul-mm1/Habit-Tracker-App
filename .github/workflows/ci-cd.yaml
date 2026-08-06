@@ -15,7 +15,7 @@ on:
 
 permissions:
   id-token: write   # AWS OIDC
-  contents: write   # push Helm tag updates back to repo
+  contents: read    # default: read-only. update-helm job elevates to write itself.
 
 env:
   AWS_REGION:   us-west-2
@@ -23,8 +23,11 @@ env:
   ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-west-2.amazonaws.com
 
 concurrency:
+  # Test/PR runs are safe to cancel. Pushes to main run update-helm, which
+  # commits + pushes Helm values — cancelling mid-push can leave that step
+  # half-applied, so only cancel in-progress runs on pull_request events.
   group: cicd-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
 
@@ -46,12 +49,15 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          # paths-filter needs history to diff against the base ref on push
+          # events — a depth-1 checkout can't find a merge base.
+          fetch-depth: 0
 
       - name: Check which services changed
         id: filter
         uses: dorny/paths-filter@v3
         with:
-          initial-fetch-depth: '1'
           filters: |
             backend:
               - 'services/backend/**'
@@ -162,7 +168,7 @@ jobs:
   #  JOB 2 ── build-scan-push-backend
   # ═══════════════════════════════════════════════════════════════════════════
   build-scan-push-backend:
-    name: Build > Scan > Push / backend
+    name: Build › Scan › Push / backend
     runs-on: ubuntu-latest
     needs: [detect-changes, test-backend]
     if: |
@@ -172,20 +178,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
-      - name: Debug OIDC sub claim
-        run: |
-          RESP=$(curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
-            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=sts.amazonaws.com")
-          TOKEN=$(echo $RESP | python3 -c "import sys,json; print(json.load(sys.stdin)['value'])")
-          PAYLOAD=$(echo $TOKEN | cut -d. -f2 | python3 -c "
-          import sys,base64,json
-          p=sys.stdin.read().strip()
-          p+='='*(-len(p)%4)
-          print(json.dumps(json.loads(base64.urlsafe_b64decode(p)),indent=2))
-          ")
-          echo "OIDC Token Claims:"
-          echo "$PAYLOAD" | grep -E '"sub"|"aud"|"iss"'
 
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
@@ -396,10 +388,14 @@ jobs:
   #  JOB 3 ── update-helm
   #  Patches values.yaml for changed services only, one commit, one push.
   #  ArgoCD detects the change and syncs EKS automatically.
+  #  Note: this job needs write access to repo contents, so it elevates
+  #  permissions locally rather than at the workflow level.
   # ═══════════════════════════════════════════════════════════════════════════
   update-helm:
     name: Update Helm Image Tags
     runs-on: ubuntu-latest
+    permissions:
+      contents: write   # only this job needs to push commits back to main
     needs:
       - detect-changes
       - build-scan-push-backend
