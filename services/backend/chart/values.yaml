@@ -31,10 +31,10 @@ ingress:
   enabled: true
   className: nginx
   annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
-  host: habittracker.local
-  path: /
-  pathType: Prefix
+        nginx.ingress.kubernetes.io/use-regex: "true"
+        nginx.ingress.kubernetes.io/rewrite-target: /$2  host: habittracker.local
+  path: /api(/|$)(.*)
+  pathType: ImplementationSpecific
 resources:
   requests:
     cpu: 100m
