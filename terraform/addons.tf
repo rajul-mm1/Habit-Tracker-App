@@ -101,7 +101,7 @@ module "eks_blueprints_addons" {
 
           persistence = {
             enabled          = true
-            storageClassName = "gp2" # EKS Auto Mode's built-in default StorageClass
+            storageClassName = "ebs-gp3" # EKS Auto Mode's built-in default StorageClass
             size             = "10Gi"
           }
         }
@@ -113,7 +113,7 @@ module "eks_blueprints_addons" {
             storageSpec = {
               volumeClaimTemplate = {
                 spec = {
-                  storageClassName = "gp2"
+                  storageClassName = "ebs-gp3"
                   accessModes      = ["ReadWriteOnce"]
                   resources = {
                     requests = { storage = "50Gi" }
