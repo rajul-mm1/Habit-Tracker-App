@@ -113,7 +113,7 @@ module "eks_blueprints_addons" {
             storageSpec = {
               volumeClaimTemplate = {
                 spec = {
-                  storageClassName = "auto"
+                  storageClassName = "gp2"
                   accessModes      = ["ReadWriteOnce"]
                   resources = {
                     requests = { storage = "50Gi" }
