@@ -20,7 +20,7 @@ securityContext:
   runAsGroup: 101
   fsGroup: 101
   allowPrivilegeEscalation: false
-  readOnlyRootFilesystem: true
+  readOnlyRootFilesystem: false
   capabilities:
     drop:
       - ALL
