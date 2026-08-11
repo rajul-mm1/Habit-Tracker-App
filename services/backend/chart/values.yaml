@@ -2,7 +2,7 @@ replicaCount: 1
 image:
   repository: "161805283944.dkr.ecr.us-west-2.amazonaws.com/backend"
   pullPolicy: IfNotPresent
-  tag: "65684f97322a2863b2fd7ccaa74843ca1a13ee09"
+  tag: "6cdbe435aecbd11ffd6c2067b462d7fd8b993b4b"
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
@@ -13,8 +13,8 @@ serviceAccount:
   name: ""
 podAnnotations: {}
 podLabels: {}
-podSecurityContext: 
-    fsGroup: 1001
+podSecurityContext:
+  fsGroup: 1001
 securityContext:
   runAsNonRoot: true
   runAsUser: 1001
