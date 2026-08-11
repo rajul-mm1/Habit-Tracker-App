@@ -1,6 +1,6 @@
 image:
   repository: "161805283944.dkr.ecr.us-west-2.amazonaws.com/cron-checker"
-  tag: "ae96ff341cc4e8148eb595ceccd77e866751ef02"
+  tag: "ac361cd12e68249fd2d8a0a7dd544002650a9085"
   pullPolicy: IfNotPresent
 imagePullSecrets: []
 nameOverride: ""
@@ -48,7 +48,6 @@ externalSecrets:
   storeName: aws-secrets-manager
   appSecretsKey: habit-tracker/app-secrets
   refreshInterval: 1h
-
 secret:
   # Only read when externalSecrets.enabled is false. Never commit a real
   # value here - see values.local.yaml.example in this chart directory.

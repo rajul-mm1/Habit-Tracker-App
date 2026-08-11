@@ -2,7 +2,7 @@ replicaCount: 1
 image:
   repository: "161805283944.dkr.ecr.us-west-2.amazonaws.com/backend"
   pullPolicy: IfNotPresent
-  tag: "dee66e4b94089a9cf48ae6935de7ed9a109f3d80"
+  tag: "ac361cd12e68249fd2d8a0a7dd544002650a9085"
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
@@ -71,7 +71,6 @@ externalSecrets:
   storeName: aws-secrets-manager # must match infra/external-secrets-store/chart's values.yaml `name`
   appSecretsKey: habit-tracker/app-secrets # must match terraform/secrets.tf's aws_secretsmanager_secret.app_secrets name
   refreshInterval: 1h
-
 secret:
   # Only read when externalSecrets.enabled is false. Never commit real
   # values here. Provide them at deploy time via

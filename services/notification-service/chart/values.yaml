@@ -1,6 +1,6 @@
 image:
   repository: "161805283944.dkr.ecr.us-west-2.amazonaws.com/notification-service"
-  tag: "ae96ff341cc4e8148eb595ceccd77e866751ef02"
+  tag: "ac361cd12e68249fd2d8a0a7dd544002650a9085"
   pullPolicy: IfNotPresent
 imagePullSecrets: []
 replicaCount: 2
