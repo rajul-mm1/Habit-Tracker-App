@@ -1,6 +1,6 @@
 image:
   repository: "161805283944.dkr.ecr.us-west-2.amazonaws.com/frontend"
-  tag: "98ce112842502f6b6056532a92a6704bd576dcf6"
+  tag: "4a094418c81b93b255f762d5288d00d72d23e13b"
   pullPolicy: IfNotPresent
 imagePullSecrets: []
 replicaCount: 2
