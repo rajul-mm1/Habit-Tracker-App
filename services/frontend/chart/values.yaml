@@ -1,6 +1,6 @@
 image:
   repository: "161805283944.dkr.ecr.us-west-2.amazonaws.com/frontend"
-  tag: "08060652430bcab721d11ccd3bec6f3371573f74"
+  tag: "c4c105859a09e96e132a2b584ee9191ec014df84"
   pullPolicy: IfNotPresent
 imagePullSecrets: []
 replicaCount: 2
@@ -13,8 +13,8 @@ serviceAccount:
   name: ""
 podAnnotations: {}
 podLabels: {}
-podSecurityContext: 
-    fsGroup: 101
+podSecurityContext:
+  fsGroup: 101
 securityContext:
   runAsNonRoot: true
   runAsUser: 101
