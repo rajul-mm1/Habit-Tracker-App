@@ -1,6 +1,6 @@
 image:
   repository: "161805283944.dkr.ecr.us-west-2.amazonaws.com/cron-checker"
-  tag: "ac361cd12e68249fd2d8a0a7dd544002650a9085"
+  tag: "7fd2ee695f769cfc7a0cbbffe1c23d8849e0fe67"
   pullPolicy: IfNotPresent
 imagePullSecrets: []
 nameOverride: ""
@@ -12,8 +12,8 @@ serviceAccount:
   name: ""
 podAnnotations: {}
 podLabels: {}
-podSecurityContext: 
-    fsGroup: 1001
+podSecurityContext:
+  fsGroup: 1001
 securityContext:
   runAsNonRoot: true
   runAsUser: 1001
