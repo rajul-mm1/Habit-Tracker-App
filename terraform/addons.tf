@@ -101,7 +101,7 @@ module "eks_blueprints_addons" {
 
           persistence = {
             enabled          = true
-            storageClassName = "auto" # EKS Auto Mode's built-in default StorageClass
+            storageClassName = "gp2" # EKS Auto Mode's built-in default StorageClass
             size             = "10Gi"
           }
         }

@@ -76,7 +76,7 @@ externalSecrets:
 persistence:
   enabled: true
   size: 5Gi
-  storageClassName: "auto" # EKS Auto Mode's built-in default StorageClass (see terraform/main.tf)
+  storageClassName: "gp2" # EKS Auto Mode's built-in default StorageClass (see terraform/main.tf)
   accessModes:
     - ReadWriteOnce
 
