@@ -15,8 +15,7 @@ FROM nginx:alpine
 COPY --from=build /app/build /usr/share/nginx/html
 
 # Allow nginx user (UID 101) to write env.js
-RUN chown -R 101:101 /usr/share/nginx/html
-
+RUN chown -R 101:101 /usr/share/nginx/html /var/cache/nginx /var/run
 # SPA routing + no-cache rule for env.js
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
