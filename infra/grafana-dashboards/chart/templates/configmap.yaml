@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+
+metadata:
+  name: habit-tracker-app-overview-dashboard
+  namespace: {{ .Values.namespace }}
+  labels:
+    # kube-prometheus-stack's Grafana sidecar (grafana.sidecar.dashboards)
+    # watches for this exact label by default and auto-imports the JSON.
+    grafana_dashboard: "1"
+
+data:
+  app-overview.json: |-
+{{ .Files.Get "dashboards/app-overview.json" | indent 4 }}

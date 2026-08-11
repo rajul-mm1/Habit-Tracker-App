@@ -1,7 +1,7 @@
 require('dotenv').config();
 const axios = require('axios');
 
-const BACKEND_URL = process.env.BACKEND_URL || 'http://backend-service:5000';
+const BACKEND_URL = process.env.BACKEND_URL || 'http://backend:5000';
 const NOTIFY_URL = process.env.NOTIFY_URL || 'http://notification-service:5001';
 const INTERNAL_SECRET = process.env.INTERNAL_SECRET;
 

@@ -1,0 +1,15 @@
+# Copy this file to values.local.yaml (same directory) and fill in real
+# values. values.local.yaml is gitignored - it will never be committed.
+#
+# Usage:
+#   cp services/cron-checker/chart/values.local.yaml.example \
+#      services/cron-checker/chart/values.local.yaml
+#   # edit values.local.yaml with the real secret
+#   helm upgrade --install cron-checker services/cron-checker/chart \
+#     -f services/cron-checker/chart/values.yaml \
+#     -f services/cron-checker/chart/values.local.yaml
+
+secret:
+  # Must match backend's secret.INTERNAL_SECRET exactly (see
+  # services/backend/chart/values.local.yaml.example).
+  INTERNAL_SECRET: "jafkeoihurhjbvjbrrgeywhjdbjdbfjk"

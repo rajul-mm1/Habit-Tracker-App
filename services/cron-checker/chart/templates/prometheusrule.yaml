@@ -1,0 +1,40 @@
+{{/*
+cron-checker is a run-once script invoked by a CronJob, not a long-lived
+HTTP server - there's nothing for a ServiceMonitor to scrape. Instead this
+alerts on job outcome using kube-state-metrics, which the kube-prometheus-stack
+in terraform/addons.tf already ships.
+*/}}
+{{- if .Values.alerts.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+
+metadata:
+  name: {{ include "chart.fullname" . }}-alerts
+  labels:
+    {{- include "chart.labels" . | nindent 4 }}
+    release: prometheus
+
+spec:
+  groups:
+    - name: cron-checker.rules
+      rules:
+
+        - alert: CronCheckerJobFailed
+          expr: kube_job_status_failed{job_name=~"{{ include "chart.fullname" . }}-.*"} > 0
+          for: 1m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Missed check-in scan failed"
+            description: "The cron-checker CronJob's most recent run failed. Missed-day nudges may not have been sent for this cycle."
+
+        - alert: CronCheckerJobNotRunRecently
+          expr: time() - max(kube_cronjob_status_last_successful_time{cronjob=~"{{ include "chart.fullname" . }}"}) > 900
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Missed check-in scan hasn't succeeded recently"
+            description: "cron-checker (schedule: {{ .Values.cronJob.schedule }}) has not completed successfully in over 15 minutes."
+
+{{- end }}

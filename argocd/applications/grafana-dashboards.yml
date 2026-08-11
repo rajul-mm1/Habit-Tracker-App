@@ -1,0 +1,43 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+
+metadata:
+  name: grafana-dashboards
+  namespace: argocd
+
+spec:
+  project: habit-tracker
+
+  source:
+    repoURL: https://github.com/rajul-mm1/Habit-Tracker-App.git
+    targetRevision: main
+    path: infra/grafana-dashboards/chart
+
+    helm:
+      releaseName: grafana-dashboards
+
+  destination:
+    server: https://kubernetes.default.svc
+    # Deliberately NOT habit-tracker - this ConfigMap must live in the same
+    # namespace as the kube-prometheus-stack Grafana pod (see
+    # terraform/addons.tf, kube_prometheus_stack.namespace) for the sidecar
+    # to discover it by default.
+    namespace: monitoring
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+
+    retry:
+      limit: 5
+
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m

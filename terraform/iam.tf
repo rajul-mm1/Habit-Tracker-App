@@ -1,11 +1,11 @@
 # =============================================================================
 # IAM ROLE FOR EXTERNAL SECRETS
 # =============================================================================
-# NOTE: This IAM role + policy exist but nothing in this project currently
-# installs the External Secrets Operator itself (no helm_release / addon
-# consumes it yet). Keeping it here on the assumption you're about to wire
-# it up — if that's not the plan, delete this block along with the
-# aws_iam_policy / aws_iam_role_policy_attachment below.
+# Bound to the external-secrets Helm chart's default ServiceAccount
+# (external-secrets:external-secrets) - see terraform/external-secrets.tf,
+# which installs the operator and annotates that ServiceAccount with this
+# role's ARN so it can call secretsmanager:GetSecretValue via IRSA (no
+# static AWS credentials in the cluster).
 # =============================================================================
 
 module "external_secrets_irsa" {
@@ -34,11 +34,13 @@ resource "aws_iam_policy" "external_secrets" {
         Effect = "Allow"
         Action = [
           "secretsmanager:GetSecretValue",
-          "secretsmanager:DescribeSecret",
-          "ssm:GetParameter",
-          "ssm:GetParameters"
+          "secretsmanager:DescribeSecret"
         ]
-        Resource = "*"
+        # Scoped to this project's own secrets only (see terraform/secrets.tf)
+        # rather than "*" - least privilege for a role that any pod in the
+        # external-secrets namespace could otherwise use to read every
+        # secret in the account.
+        Resource = "arn:aws:secretsmanager:${var.aws_region}:${data.aws_caller_identity.current.account_id}:secret:habit-tracker/*"
       }
     ]
   })

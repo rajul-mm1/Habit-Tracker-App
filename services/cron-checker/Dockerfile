@@ -13,6 +13,7 @@ RUN npm install --production \
 
 COPY . .
 
-EXPOSE 5000
+# No EXPOSE - this is a run-once script invoked by a Kubernetes CronJob,
+# not a long-running server.
 
-CMD ["node", "src/server.js"]
+CMD ["node", "src/index.js"]

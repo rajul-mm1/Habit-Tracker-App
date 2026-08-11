@@ -1,0 +1,15 @@
+apiVersion: v2
+
+name: external-secrets-store
+
+description: >-
+  ClusterSecretStore pointing External Secrets Operator (installed via
+  terraform/external-secrets.tf) at this account's AWS Secrets Manager.
+  Cluster-scoped so every namespace's ExternalSecret resources can
+  reference it by name.
+
+type: application
+
+version: 0.1.0
+
+appVersion: "1.0.0"

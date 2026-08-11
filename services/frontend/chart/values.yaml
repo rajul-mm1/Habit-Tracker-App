@@ -32,11 +32,18 @@ ingress:
   className: nginx
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /
-  host: habittracker.local
+  host: habittracker.32.188.82.206.nip.io
   path: /
   pathType: Prefix
 config:
-  REACT_APP_API_URL: "/api"
+  # Consumed by docker-entrypoint.sh (which reads $API_URL) to regenerate
+  # env.js at container start - see src/api/client.js. Every frontend API
+  # call already includes the "/api" prefix (e.g. client.post('/api/auth/login')),
+  # so this must be the origin only. Empty string means same-origin: the
+  # browser calls e.g. https://habittracker.local/api/... and the Ingress
+  # (path /api(/|$)(.*)) routes that to the backend Service - no separate
+  # host, no CORS. This name and semantics must match docker-entrypoint.sh.
+  API_URL: ""
 resources:
   requests:
     cpu: 100m

@@ -38,10 +38,26 @@ resources:
     cpu: 300m
     memory: 256Mi
 config:
-  BACKEND_URL: "http://backend-service:5000"
+  # Must match the backend chart's Service name. With releaseName "backend"
+  # and chart name "backend", the fullname helper resolves to "backend" (not
+  # "backend-service") - see argocd/applications/backend.yml.
+  BACKEND_URL: "http://backend:5000"
   NOTIFY_URL: "http://notification-service:5001"
+externalSecrets:
+  enabled: true
+  storeName: aws-secrets-manager
+  appSecretsKey: habit-tracker/app-secrets
+  refreshInterval: 1h
+
 secret:
-  INTERNAL_SECRET: "mlkjisfhiojdfanfdkjfhauwiojdmfadfn"
+  # Only read when externalSecrets.enabled is false. Never commit a real
+  # value here - see values.local.yaml.example in this chart directory.
+  # Must match the backend's INTERNAL_SECRET exactly (it's how cron-checker
+  # authenticates its calls to the backend's internal missed-check-in
+  # endpoint).
+  INTERNAL_SECRET: ""
+alerts:
+  enabled: true
 nodeSelector: {}
 tolerations: []
 affinity: {}

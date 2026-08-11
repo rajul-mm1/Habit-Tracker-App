@@ -1,0 +1,17 @@
+# Copy this file to values.local.yaml (same directory) and fill in a real
+# password. values.local.yaml is gitignored - it will never be committed.
+#
+# Only needed if you set auth.enabled: true in values.yaml (auth is
+# disabled by default - see the AUTH section in values.yaml for the full
+# hardening path, including updating the backend's MONGO_URL).
+#
+# Usage:
+#   cp infra/mongodb/chart/values.local.yaml.example \
+#      infra/mongodb/chart/values.local.yaml
+#   # edit values.local.yaml with the real password
+#   helm upgrade --install mongodb infra/mongodb/chart \
+#     -f infra/mongodb/chart/values.yaml \
+#     -f infra/mongodb/chart/values.local.yaml
+
+auth:
+  rootPassword: "REPLACE_ME"

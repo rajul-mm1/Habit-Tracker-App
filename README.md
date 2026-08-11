@@ -66,6 +66,7 @@ This turns the "accountability partner" concept from a UI label into an actual v
 - **Ingress** for single-hostname routing between frontend and backend, avoiding CORS and cluster-internal-DNS issues in the browser
 - **Runtime environment injection** for the frontend container (see `frontend/docker-entrypoint.sh`) — the same built image works across dev/staging/prod without a rebuild, unlike typical React apps that bake `REACT_APP_*` vars in at build time
 - **Liveness/readiness probes** and resource requests/limits on every Deployment
+- **Prometheus & Grafana** (via `kube-prometheus-stack`) - every service exposes `/metrics`, each Helm chart ships a `ServiceMonitor` + `PrometheusRule`, and `infra/grafana-dashboards` auto-provisions a dashboard covering request rate, error rate, p95 latency, and pod restarts
 
 ## CI/CD
 
@@ -78,14 +79,21 @@ A GitHub Actions workflow (`.github/workflows/ci-cd.yaml`) runs on every push/PR
 
 ```
 .
-├── backend/                # Express API
-├── frontend/                # React app + nginx + runtime env injection
-├── notification-service/    # Standalone notification microservice
-├── cron-checker/             # Script run by the Kubernetes CronJob
-├── k8s/                      # All Kubernetes manifests
-├── docker-compose.yml        # Local dev - all services in one command
-└── .github/workflows/        # CI/CD pipeline
+├── services/
+│   ├── backend/                # Express API + its Helm chart (services/backend/chart)
+│   ├── frontend/                # React app + nginx + runtime env injection + its Helm chart
+│   ├── notification-service/    # Standalone notification microservice + its Helm chart
+│   └── cron-checker/             # Script run by the Kubernetes CronJob + its Helm chart
+├── infra/
+│   ├── mongodb/chart/            # PVC-backed MongoDB StatefulSet (Helm chart)
+│   └── grafana-dashboards/chart/ # Grafana dashboard ConfigMap, auto-imported by kube-prometheus-stack
+├── argocd/                       # AppProject + one Application per chart above
+├── terraform/                    # VPC, EKS (Auto Mode), ECR, ArgoCD, ingress-nginx, kube-prometheus-stack
+├── docker-compose.yml             # Local dev - all services in one command
+└── .github/workflows/              # CI/CD pipeline
 ```
+
+Each service (and `infra/mongodb`, `infra/grafana-dashboards`) is deployed as its own Helm chart via its own ArgoCD `Application` in `argocd/applications/` - there is no single `k8s/` manifests directory.
 
 ## Running it locally
 

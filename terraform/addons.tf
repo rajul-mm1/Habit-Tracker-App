@@ -32,6 +32,18 @@ module "eks_blueprints_addons" {
   }
 
   # ---------------------------------------------------------------------------
+  # CERT-MANAGER
+  # Installs the cert-manager CRDs + controller. Actual issuers (ClusterIssuer
+  # resources for Let's Encrypt) are deployed via GitOps, not here - see
+  # infra/cert-manager-issuer/chart + argocd/applications/cert-manager-issuer.yml.
+  # We keep the issuer itself in Helm/ArgoCD (not Terraform) so it stays
+  # consistent with how every other cluster-facing config in this repo is
+  # managed, and so a change to the issuer doesn't require a terraform apply.
+  # ---------------------------------------------------------------------------
+
+  enable_cert_manager = true
+
+  # ---------------------------------------------------------------------------
   # METRICS SERVER
   # ---------------------------------------------------------------------------
 
@@ -69,6 +81,16 @@ module "eks_blueprints_addons" {
   enable_kube_prometheus_stack = true
 
   kube_prometheus_stack = {
+    # IMPORTANT: every ServiceMonitor/PrometheusRule in this repo's Helm
+    # charts (services/*/chart/templates/servicemonitor.yaml,
+    # prometheusrule.yaml) carries the label `release: prometheus` so
+    # Prometheus Operator's default serviceMonitorSelector/ruleSelector
+    # (which matches on `release: <this Helm release name>`) picks them up.
+    # The eks-blueprints-addons module defaults this release name to
+    # "kube-prometheus-stack", which would silently break that selector -
+    # pin it to "prometheus" to match.
+    name = "prometheus"
+
     namespace = "monitoring"
 
     values = [

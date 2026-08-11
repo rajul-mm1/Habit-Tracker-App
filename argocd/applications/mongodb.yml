@@ -1,0 +1,44 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+
+metadata:
+  name: mongodb
+  namespace: argocd
+  annotations:
+    # Deploy MongoDB before the app services (default wave is "0"). Backend
+    # and cron-checker will still self-heal via container restarts if they
+    # race ahead of this, but ordering avoids the unnecessary crash-loop.
+    argocd.argoproj.io/sync-wave: "-1"
+
+spec:
+  project: habit-tracker
+
+  source:
+    repoURL: https://github.com/rajul-mm1/Habit-Tracker-App.git
+    targetRevision: main
+    path: infra/mongodb/chart
+
+    helm:
+      releaseName: mongodb
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: habit-tracker
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+
+    retry:
+      limit: 5
+
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m

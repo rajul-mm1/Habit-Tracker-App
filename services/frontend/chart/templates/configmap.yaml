@@ -7,4 +7,6 @@ metadata:
     {{- include "chart.labels" . | nindent 4 }}
 
 data:
-  REACT_APP_API_URL: {{ .Values.config.REACT_APP_API_URL | quote }}
+  # Must be named API_URL - docker-entrypoint.sh reads this exact env var
+  # name to regenerate env.js at container start.
+  API_URL: {{ .Values.config.API_URL | quote }}

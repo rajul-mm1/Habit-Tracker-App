@@ -4,15 +4,19 @@ metadata:
   name: habit-tracker
   namespace: argocd
 spec:
-  description: Retail Store Sample Application
-  
+  description: Habit Accountability Partner App
+
   sourceRepos:
     - 'https://github.com/rajul-mm1/Habit-Tracker-App.git'
-  
+
   destinations:
     - namespace: habit-tracker
       server: https://kubernetes.default.svc
-  
+    - namespace: monitoring
+      server: https://kubernetes.default.svc
+    - namespace: external-secrets
+      server: https://kubernetes.default.svc
+
   clusterResourceWhitelist:
     - group: ''
       kind: Namespace
@@ -22,43 +26,39 @@ spec:
       kind: ClusterRoleBinding
     - group: 'cert-manager.io'
       kind: ClusterIssuer
-  
+    - group: 'external-secrets.io'
+      kind: ClusterSecretStore
+
   namespaceResourceWhitelist:
-  - group: ""
-    kind: ConfigMap
-  - group: ""
-    kind: Secret
-  - group: ""
-    kind: Service
-  - group: ""
-    kind: ServiceAccount
-  - group: apps
-    kind: Deployment
-  - group: apps
-    kind: StatefulSet
-  - group: batch
-    kind: CronJob
-  - group: batch
-    kind: Job
-  - group: networking.k8s.io
-    kind: Ingress
-  - group: autoscaling
-    kind: HorizontalPodAutoscaler
-  - group: policy
-    kind: PodDisruptionBudget
-  - group: monitoring.coreos.com
-    kind: ServiceMonitor
-  - group: monitoring.coreos.com
-    kind: PrometheusRule
-
-  - group: monitoring.coreos.com
-    kind: ServiceMonitor
-
-  - group: monitoring.coreos.com
-    kind: PrometheusRule
-
-  - group: monitoring.coreos.com
-    kind: PodMonitor
-
-  - group: monitoring.coreos.com
-    kind: Probe
+    - group: ""
+      kind: ConfigMap
+    - group: ""
+      kind: Secret
+    - group: ""
+      kind: Service
+    - group: ""
+      kind: ServiceAccount
+    - group: apps
+      kind: Deployment
+    - group: apps
+      kind: StatefulSet
+    - group: batch
+      kind: CronJob
+    - group: batch
+      kind: Job
+    - group: networking.k8s.io
+      kind: Ingress
+    - group: autoscaling
+      kind: HorizontalPodAutoscaler
+    - group: policy
+      kind: PodDisruptionBudget
+    - group: monitoring.coreos.com
+      kind: ServiceMonitor
+    - group: monitoring.coreos.com
+      kind: PrometheusRule
+    - group: monitoring.coreos.com
+      kind: PodMonitor
+    - group: monitoring.coreos.com
+      kind: Probe
+    - group: external-secrets.io
+      kind: ExternalSecret

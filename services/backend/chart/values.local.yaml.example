@@ -1,0 +1,17 @@
+# Copy this file to values.local.yaml (same directory) and fill in real
+# values. values.local.yaml is gitignored - it will never be committed.
+#
+# Usage:
+#   cp services/backend/chart/values.local.yaml.example \
+#      services/backend/chart/values.local.yaml
+#   # edit values.local.yaml with real secrets
+#   helm upgrade --install backend services/backend/chart \
+#     -f services/backend/chart/values.yaml \
+#     -f services/backend/chart/values.local.yaml
+#
+# Generate strong random secrets, e.g.:
+#   openssl rand -hex 32
+
+secret:
+  JWT_SECRET: "kjdfahfehnkdaejriehdfkdjfkdjfd"
+  INTERNAL_SECRET: "jafkeoihurhjbvjbrrgeywhjdbjdbfjk" # must match cron-checker's INTERNAL_SECRET exactly

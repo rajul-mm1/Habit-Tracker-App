@@ -10,11 +10,9 @@ dist/
 .env.local
 .env.*.local
 
-# Kubernetes secrets you may generate locally with real values
-k8s/*-secret.local.yaml
-
-k8s/06-backend-secret.yaml
-k8s/08-notification-secret.yaml
+# Local Helm values overrides containing real secrets - never commit these
+services/*/chart/values.local.yaml
+infra/*/chart/values.local.yaml
 
 # Logs
 npm-debug.log*

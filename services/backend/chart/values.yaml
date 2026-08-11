@@ -2,7 +2,7 @@ replicaCount: 1
 image:
   repository: "161805283944.dkr.ecr.us-west-2.amazonaws.com/backend"
   pullPolicy: IfNotPresent
-  tag: "ae96ff341cc4e8148eb595ceccd77e866751ef02"
+  tag: "dee66e4b94089a9cf48ae6935de7ed9a109f3d80"
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
@@ -31,9 +31,9 @@ ingress:
   enabled: true
   className: nginx
   annotations:
-        nginx.ingress.kubernetes.io/use-regex: "true"
-        nginx.ingress.kubernetes.io/rewrite-target: "/$2"  
-  host: habittracker.local
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: "/$2"
+  host: habittracker.32.188.82.206.nip.io
   path: /api(/|$)(.*)
   pathType: ImplementationSpecific
 resources:
@@ -59,9 +59,31 @@ config:
   PORT: "5000"
   MONGO_URL: "mongodb://mongodb:27017/habit_tracker"
   NOTIFY_URL: "http://notification-service:5001"
+externalSecrets:
+  # When true (default, used by the real ArgoCD-managed deployment), this
+  # chart's Secret is created by an ExternalSecret pulling from AWS Secrets
+  # Manager (see templates/external-secret.yaml) instead of from the
+  # `secret:` values below - ArgoCD never sees a real secret value, only
+  # this reference. Set to false only for manual/local `helm install`
+  # without ESO in the cluster, and fill in `secret:` below via
+  # values.local.yaml instead.
+  enabled: true
+  storeName: aws-secrets-manager # must match infra/external-secrets-store/chart's values.yaml `name`
+  appSecretsKey: habit-tracker/app-secrets # must match terraform/secrets.tf's aws_secretsmanager_secret.app_secrets name
+  refreshInterval: 1h
+
 secret:
-  JWT_SECRET: "kjdsfkdjfkjdsfjdkfjkdfjksdfjksdfjksdfjk"
-  INTERNAL_SECRET: "mlkjisfhiojdfanfdkjfhauwiojdmfadfn"
+  # Only read when externalSecrets.enabled is false. Never commit real
+  # values here. Provide them at deploy time via
+  # values.local.yaml (gitignored - copy values.local.yaml.example next to
+  # this file) or --set, e.g.:
+  #   helm upgrade --install backend services/backend/chart \
+  #     -f services/backend/chart/values.yaml \
+  #     -f services/backend/chart/values.local.yaml
+  # In production, prefer sourcing these from the External Secrets Operator
+  # IRSA role already provisioned in terraform/iam.tf instead of Helm values.
+  JWT_SECRET: ""
+  INTERNAL_SECRET: ""
 livenessProbe:
   httpGet:
     path: /health

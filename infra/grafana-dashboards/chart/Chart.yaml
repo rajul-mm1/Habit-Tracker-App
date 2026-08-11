@@ -1,0 +1,16 @@
+apiVersion: v2
+
+name: grafana-dashboards
+
+description: >-
+  ConfigMap(s) carrying Grafana dashboard JSON for the Habit Tracker app
+  services. kube-prometheus-stack's Grafana sidecar auto-imports any
+  ConfigMap labeled grafana_dashboard: "1" in its own namespace (see
+  terraform/addons.tf, kube_prometheus_stack.namespace = "monitoring") -
+  no manual Grafana configuration needed.
+
+type: application
+
+version: 0.1.0
+
+appVersion: "1.0.0"

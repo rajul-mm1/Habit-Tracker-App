@@ -1,0 +1,15 @@
+apiVersion: v2
+
+name: mongodb
+
+description: >-
+  Single-node, PVC-backed MongoDB StatefulSet for the Habit Tracker app.
+  Not a general-purpose MongoDB chart - intentionally minimal (no replica
+  set, no auth by default) to match this project's scale. See README notes
+  in values.yaml for the production hardening path (auth + External Secrets).
+
+type: application
+
+version: 0.1.0
+
+appVersion: "7.0"

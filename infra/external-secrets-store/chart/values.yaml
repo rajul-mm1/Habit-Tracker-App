@@ -1,0 +1,12 @@
+# Name every chart's ExternalSecret resources reference via
+# secretStoreRef.name (see e.g. services/backend/chart/templates/external-secret.yaml).
+name: aws-secrets-manager
+
+region: us-west-2 # must match terraform/variables.tf's aws_region default
+
+# The IRSA-annotated ServiceAccount that terraform/external-secrets.tf
+# creates for the operator itself. ESO authenticates to AWS via that
+# ServiceAccount's IAM role - no static credentials here.
+auth:
+  serviceAccountName: external-secrets
+  serviceAccountNamespace: external-secrets
