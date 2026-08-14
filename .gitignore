@@ -13,6 +13,8 @@ dist/
 # Local Helm values overrides containing real secrets - never commit these
 services/*/chart/values.local.yaml
 infra/*/chart/values.local.yaml
+services/*/chart/values.local.yaml.example
+infra/*/chart/values.local.yaml.example
 
 # Logs
 npm-debug.log*

@@ -13,5 +13,5 @@
 #   openssl rand -hex 32
 
 secret:
-  JWT_SECRET: "kjdfahfehnkdaejriehdfkdjfkdjfd"
-  INTERNAL_SECRET: "jafkeoihurhjbvjbrrgeywhjdbjdbfjk" # must match cron-checker's INTERNAL_SECRET exactly
+  JWT_SECRET: ""
+  INTERNAL_SECRET: "" # must match cron-checker's INTERNAL_SECRET exactly
